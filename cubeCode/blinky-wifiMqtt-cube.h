@@ -43,19 +43,13 @@ union SubscribeData
 
 void setupWifiAp()
 {
-  IPAddress local_IP(192,168,33,3);
-  IPAddress gateway(192,168,33,1);
-  IPAddress subnet(255,255,255,0);
-
-  g_wifiServer = WiFiServer(80);
-  Serial.println("Reset");
   WiFi.disconnect();
-  g_wifiAccessPointMode = true;
   WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(local_IP, gateway, subnet);
-  WiFi.softAP("BlinkyLite");
+  WiFi.softAP(g_mqttUsername);
   Serial.print("[+] AP Created with IP Gateway ");
   Serial.println(WiFi.softAPIP());
+  g_wifiServer = WiFiServer(80);
+  g_wifiAccessPointMode = true;
   g_wifiServer.begin();
   Serial.print("Connected to wifi. My address:");
   IPAddress myAddress = WiFi.localIP();
@@ -306,7 +300,6 @@ void setup_wifi()
   g_commLEDState = 1;
   digitalWrite(g_commLEDPin, g_commLEDState);
   delay(10);
-  g_wifiLastTry = millis();
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(g_ssid);
@@ -319,12 +312,15 @@ void setup_wifi()
   WiFi.mode(WIFI_STA);
   WiFi.begin(g_ssid.c_str(), g_wifiPassword.c_str());
   
+  g_wifiLastTry = millis();
+  g_wifiStatus = WiFi.status();
   while ((g_wifiStatus != WL_CONNECTED) && ((millis() - g_wifiLastTry) < g_wifiTimeout))
   {
     g_wifiStatus = WiFi.status();
     delay(500);
     Serial.print(".");
   }
+  g_wifiLastTry = millis();
 
   randomSeed(micros());
   if (g_wifiStatus == WL_CONNECTED)
@@ -366,17 +362,17 @@ void mqttCallback(char* topic, byte* payload, unsigned int length)
 
 void reconnect() 
 {
-  // Loop until we're reconnected
-  while (!g_mqttClient.connected()) 
+  if (!g_mqttClient.connected()) 
   {
-    Serial.print("Attempting MQTT connection...");
+    Serial.print("Attempting MQTT connection using ID...");
     // Create a random client ID
-    String mqttClientId = "PicoWClient-";
+    String mqttClientId = g_mqttUsername + "-";
     mqttClientId += String(random(0xffff), HEX);
+    Serial.print(mqttClientId);
     // Attempt to connect
     if (g_mqttClient.connect(mqttClientId.c_str(),g_mqttUsername.c_str(), g_mqttPassword.c_str())) 
     {
-      Serial.println("connected");
+      Serial.println("...connected");
       // Once connected, publish an announcement...
 //      g_mqttClient.publish(g_mqttPublishTopic, "hello world");
       // ... and resubscribe
@@ -384,11 +380,45 @@ void reconnect()
     } 
     else 
     {
+      int mqttState = g_mqttClient.state();
       Serial.print("failed, rc=");
-      Serial.print(g_mqttClient.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+      Serial.print(mqttState);
+      Serial.print(": ");
+      switch (mqttState) 
+      {
+        case -4:
+          Serial.println("MQTT_CONNECTION_TIMEOUT");
+          break;
+        case -3:
+          Serial.println("MQTT_CONNECTION_LOST");
+          break;
+        case -2:
+          Serial.println("MQTT_CONNECT_FAILED");
+          break;
+        case -1:
+          Serial.println("MQTT_DISCONNECTED");
+          break;
+        case 0:
+          Serial.println("MQTT_CONNECTED");
+          break;
+        case 1:
+          Serial.println("MQTT_CONNECT_BAD_PROTOCOL");
+          break;
+        case 2:
+          Serial.println("MQTT_CONNECT_BAD_CLIENT_ID");
+          break;
+        case 3:
+          Serial.println("MQTT_CONNECT_UNAVAILABLE");
+          break;
+        case 4:
+          Serial.println("MQTT_CONNECT_BAD_CREDENTIALS");
+          break;
+        case 5:
+          Serial.println("MQTT_CONNECT_UNAUTHORIZED");
+          break;
+        default:
+          break;
+      }
     }
   }
 }
@@ -419,6 +449,8 @@ void initBlinkyBus(int publishInterval, boolean publishOnInterval, int commLEDPi
       g_mqttPublishTopic   = lines[5];
       g_mqttSubscribeTopic = lines[6];
       file.close();
+      g_mqttClient.setKeepAlive(60);
+      g_mqttClient.setSocketTimeout(60);
   }
   else
   {
