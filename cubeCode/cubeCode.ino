@@ -1,22 +1,19 @@
-#define BLINKYMQTTBUSBUFSIZE  5
-union BlinkyBusUnion
+#include "BlinkyMqttCube.h"
+
+struct
 {
-  struct
-  {
-    int16_t state;
-    int16_t watchdog;
-    int16_t chipTemp;
-    int16_t led1;
-    int16_t led2;
-  };
-  int16_t buffer[BLINKYMQTTBUSBUFSIZE];
-} blinkyBus;
+  int16_t state;
+  int16_t watchdog;
+  int16_t chipTemp;
+  int16_t led1;
+  int16_t led2;
+} cubeData;
+
 void subscribeCallback(uint8_t address, int16_t value)
 {
   if (address > 1) setLeds();
 }
 
-#include "blinky-wifiMqtt-cube.h"
 
 int led1Pin = 10;
 int led2Pin = 11;
@@ -28,10 +25,11 @@ void setup()
   Serial.begin(115200);
 //  while (!Serial) {;}
   delay(1000);
-  initBlinkyBus(2000,true, LED_BUILTIN, 16);
+  BlinkyMqttCube.setChattyCathy(false);
+  BlinkyMqttCube.init(2000,true, LED_BUILTIN, 16, (int16_t*)& cubeData,  sizeof(cubeData), subscribeCallback);
 
-  blinkyBus.led1 = 0;
-  blinkyBus.led2 = 0;
+  cubeData.led1 = 0;
+  cubeData.led2 = 0;
   setLeds();
 
 
@@ -39,13 +37,13 @@ void setup()
 
 void loop() 
 {
-  blinkyBusLoop();
-  blinkyBus.chipTemp = (int16_t) (analogReadTemp() * 100.0);
+  BlinkyMqttCube.loop();
+  cubeData.chipTemp = (int16_t) (analogReadTemp() * 100.0);
 //  publishBlinkyBusNow(); 
 }
 
 void setLeds()
 {
-  analogWrite(led1Pin, blinkyBus.led1);    
-  analogWrite(led2Pin, blinkyBus.led2);    
+  analogWrite(led1Pin, cubeData.led1);    
+  analogWrite(led2Pin, cubeData.led2);    
 }
