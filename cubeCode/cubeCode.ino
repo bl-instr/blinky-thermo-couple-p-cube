@@ -26,7 +26,7 @@ void setup()
   pinMode(led1Pin, OUTPUT);
   pinMode(led2Pin, OUTPUT);
   Serial.begin(115200);
-  while (!Serial) {;}
+//  while (!Serial) {;}
   delay(1000);
   initBlinkyBus(2000,true, LED_BUILTIN, 16);
 

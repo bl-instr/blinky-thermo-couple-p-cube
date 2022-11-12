@@ -360,8 +360,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length)
 
 }
 
-void reconnect() 
+boolean reconnect() 
 {
+  boolean reconnectSuccess = false;
   if (!g_mqttClient.connected()) 
   {
     Serial.print("Attempting MQTT connection using ID...");
@@ -377,6 +378,7 @@ void reconnect()
 //      g_mqttClient.publish(g_mqttPublishTopic, "hello world");
       // ... and resubscribe
       g_mqttClient.subscribe(g_mqttSubscribeTopic.c_str());
+      reconnectSuccess = true;
     } 
     else 
     {
@@ -421,6 +423,11 @@ void reconnect()
       }
     }
   }
+  else
+  {
+    reconnectSuccess = true;
+  }
+  return reconnectSuccess;
 }
 void initBlinkyBus(int publishInterval, boolean publishOnInterval, int commLEDPin, int resetButtonPin)
 {
@@ -508,7 +515,7 @@ void blinkyBusLoop()
     {
       if (!g_mqttClient.connected()) 
       {
-        reconnect();
+        if (!reconnect()) return;
       }
       g_mqttClient.loop();
     
