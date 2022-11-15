@@ -22,17 +22,16 @@ void setup()
 {
   pinMode(led1Pin, OUTPUT);
   pinMode(led2Pin, OUTPUT);
-  Serial.begin(115200);
-//  while (!Serial) {;}
   delay(1000);
+//  Serial.begin(115200);
+//  while (!Serial) {;}
+
   BlinkyMqttCube.setChattyCathy(false);
-  BlinkyMqttCube.init(2000,true, LED_BUILTIN, 16, (int16_t*)& cubeData,  sizeof(cubeData), subscribeCallback);
+  BlinkyMqttCube.init(2000,true, 17, 255, 16, (int16_t*)& cubeData,  sizeof(cubeData), subscribeCallback);
 
   cubeData.led1 = 0;
   cubeData.led2 = 0;
   setLeds();
-
-
 }
 
 void loop() 
