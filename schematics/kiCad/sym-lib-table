@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name "MCU_RaspberryPi_and_Boards")(type "Legacy")(uri "${KIPRJMOD}/Library/MCU_RaspberryPi_and_Boards.lib")(options "")(descr ""))
+  (lib (name "LM358AD")(type "KiCad")(uri "${KIPRJMOD}/Library/LM358AD/LM358AD.kicad_sym")(options "")(descr ""))
+)

@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name "MCU_RaspberryPi_and_Boards")(type "KiCad")(uri "${KIPRJMOD}/Library/MCU_RaspberryPi_and_Boards.pretty")(options "")(descr ""))
+  (lib (name "blinkyLiteLogo")(type "KiCad")(uri "${KIPRJMOD}/Library/blinkyLiteLogo")(options "")(descr ""))
+  (lib (name "LM358AD")(type "KiCad")(uri "${KIPRJMOD}/Library/LM358AD")(options "")(descr ""))
+)
