@@ -35,7 +35,11 @@ int g_tempCount = 0;
 void setupServerComm()
 {
   // Optional setup to overide defaults
-  if (printDiagnostics) Serial.begin(115200);
+  if (printDiagnostics)
+  {
+    Serial.begin(115200);
+    delay(10000);
+  }
   BlinkyPicoWCube.setChattyCathy(printDiagnostics);
   BlinkyPicoWCube.setWifiTimeoutMs(20000);
   BlinkyPicoWCube.setWifiRetryMs(20000);
@@ -73,19 +77,20 @@ void cubeLoop()
   
   if ((nowTime - lastPublishTime) > publishInterval)
   {
+    cubeData.chipTemp = (int16_t) (analogReadTemp() * 100.0);
     switch (g_tempCount) 
     {
       case 0:
         tempAOneWire.convert_temperature(tempAaddress, true, false);
         cubeData.tempA = (int16_t) (tempAOneWire.temperature(tempAaddress) * 100.0);
-        if (printDiagnostics) Serial.print("Temp A: ");
-        if (printDiagnostics) Serial.println(cubeData.tempA);
+//        if (printDiagnostics) Serial.print("Temp A: ");
+//        if (printDiagnostics) Serial.println(cubeData.tempA);
         break;
       case 1:
         tempBOneWire.convert_temperature(tempBaddress, true, false);
         cubeData.tempB = (int16_t) (tempBOneWire.temperature(tempBaddress) * 100.0);
-        if (printDiagnostics) Serial.print("Temp B: ");
-        if (printDiagnostics) Serial.println(cubeData.tempB);
+//        if (printDiagnostics) Serial.print("Temp B: ");
+//        if (printDiagnostics) Serial.println(cubeData.tempB);
         break;
       default:
         break;
@@ -99,7 +104,6 @@ void cubeLoop()
     BlinkyPicoWCube::publishToServer();
   }  
   
-  cubeData.chipTemp = (int16_t) (analogReadTemp() * 100.0);
 }
 
 

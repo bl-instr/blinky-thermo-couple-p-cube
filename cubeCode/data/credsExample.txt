@@ -1,8 +1,9 @@
 {yourSsid}
 {yourSsidPassword}
 {your.mqttbroker.com}
-{yourMqttUserName}
+{yourMqttUsername}
 {yourMqttPassword}
-{blinky-DS18B20-p/0x/reading}
-{blinky-DS18B20-p/0x/setting}
-
+{yourBox}
+{yourTrayType}
+{yourTrayName}
+{yourCubeType}

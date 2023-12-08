@@ -234,10 +234,10 @@ void BlinkyPicoWCube::loop()
           setCommLEDPin(g_commLEDState);
           g_publishNow = false;
           g_mqttClient.publish(g_mqttPublishTopic.c_str(), g_cubeData.buffer, g_cubeDataSize);
-//          if (g_chattyCathy) Serial.print("Publishing to MQTT ");
-//          if (g_chattyCathy) Serial.print(g_mqttPublishTopic);
-//          if (g_chattyCathy) Serial.print(" ");
-//          if (g_chattyCathy) Serial.println(g_cubeData.watchdog);
+          if (g_chattyCathy) Serial.print("Publishing to MQTT ");
+          if (g_chattyCathy) Serial.print(g_mqttPublishTopic);
+          if (g_chattyCathy) Serial.print(" ");
+          if (g_chattyCathy) Serial.println(g_cubeData.watchdog);
           g_lastMsgTime = now;
       }
       if (g_commLEDState)
