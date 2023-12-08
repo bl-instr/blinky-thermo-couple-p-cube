@@ -1,3 +1,5 @@
+boolean printDiagnostics = false;
+
 union CubeData
 {
   struct
@@ -33,8 +35,8 @@ int g_tempCount = 0;
 void setupServerComm()
 {
   // Optional setup to overide defaults
-//  Serial.begin(115200);
-  BlinkyPicoWCube.setChattyCathy(false);
+  if (printDiagnostics) Serial.begin(115200);
+  BlinkyPicoWCube.setChattyCathy(printDiagnostics);
   BlinkyPicoWCube.setWifiTimeoutMs(20000);
   BlinkyPicoWCube.setWifiRetryMs(20000);
   BlinkyPicoWCube.setMqttRetryMs(3000);
@@ -76,14 +78,14 @@ void cubeLoop()
       case 0:
         tempAOneWire.convert_temperature(tempAaddress, true, false);
         cubeData.tempA = (int16_t) (tempAOneWire.temperature(tempAaddress) * 100.0);
-        if (BlinkyPicoWCube.getChattyCathy()) Serial.print("Temp A: ");
-        if (BlinkyPicoWCube.getChattyCathy()) Serial.println(cubeData.tempA);
+        if (printDiagnostics) Serial.print("Temp A: ");
+        if (printDiagnostics) Serial.println(cubeData.tempA);
         break;
       case 1:
         tempBOneWire.convert_temperature(tempBaddress, true, false);
         cubeData.tempB = (int16_t) (tempBOneWire.temperature(tempBaddress) * 100.0);
-        if (BlinkyPicoWCube.getChattyCathy()) Serial.print("Temp B: ");
-        if (BlinkyPicoWCube.getChattyCathy()) Serial.println(cubeData.tempB);
+        if (printDiagnostics) Serial.print("Temp B: ");
+        if (printDiagnostics) Serial.println(cubeData.tempB);
         break;
       default:
         break;

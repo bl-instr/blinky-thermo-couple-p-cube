@@ -47,6 +47,10 @@ class BlinkyPicoWCube
     String        g_mqttPassword;
     String        g_mqttPublishTopic;
     String        g_mqttSubscribeTopic;
+    String        g_box;
+    String        g_trayType;
+    String        g_trayName;
+    String        g_cubeType;
 
     WiFiClient    g_wifiClient;
     PubSubClient  g_mqttClient;
@@ -111,7 +115,6 @@ class BlinkyPicoWCube
     void          setMaxNoMqttErrors(int maxNoMqttErrors){g_maxNoMqttErrors = maxNoMqttErrors;};
     static void   checkForSettings();
     static void   publishToServer();
-    boolean       getChattyCathy();
 
 };
 BlinkyPicoWCube::BlinkyPicoWCube()
@@ -231,8 +234,10 @@ void BlinkyPicoWCube::loop()
           setCommLEDPin(g_commLEDState);
           g_publishNow = false;
           g_mqttClient.publish(g_mqttPublishTopic.c_str(), g_cubeData.buffer, g_cubeDataSize);
-          if (g_chattyCathy) Serial.print("Publishing MQTT ");
-          if (g_chattyCathy) Serial.println(g_cubeData.watchdog);
+//          if (g_chattyCathy) Serial.print("Publishing to MQTT ");
+//          if (g_chattyCathy) Serial.print(g_mqttPublishTopic);
+//          if (g_chattyCathy) Serial.print(" ");
+//          if (g_chattyCathy) Serial.println(g_cubeData.watchdog);
           g_lastMsgTime = now;
       }
       if (g_commLEDState)
@@ -268,11 +273,11 @@ void BlinkyPicoWCube::init(int commLEDPin, int commLEDBright, int resetButtonPin
   File file = LittleFS.open("/creds.txt", "r");
   if (file) 
   {
-      String lines[7];
+      String lines[8];
       String data = file.readString();
       int startPos = 0;
       int stopPos = 0;
-      for (int ii = 0; ii < 7; ++ii)
+      for (int ii = 0; ii < 9; ++ii)
       {
         startPos = data.indexOf("{") + 1;
         stopPos = data.indexOf("}");
@@ -285,8 +290,12 @@ void BlinkyPicoWCube::init(int commLEDPin, int commLEDBright, int resetButtonPin
       g_mqttServer         = lines[2];
       g_mqttUsername       = lines[3];
       g_mqttPassword       = lines[4];
-      g_mqttPublishTopic   = lines[5];
-      g_mqttSubscribeTopic = lines[6];
+      g_box                = lines[5];
+      g_trayType           = lines[6];
+      g_trayName           = lines[7];
+      g_cubeType           = lines[8];
+      g_mqttSubscribeTopic = g_box + "/" + g_cubeType + "/" + g_trayType + "/" + g_trayName + "/setting";
+      g_mqttPublishTopic   = g_box + "/" + g_cubeType + "/" + g_trayType + "/" + g_trayName + "/reading";
       file.close();
       g_mqttClient.setKeepAlive(g_blMqttKeepAlive);
       g_mqttClient.setSocketTimeout(g_blMqttSocketTimeout);
@@ -349,6 +358,23 @@ void BlinkyPicoWCube::setup_wifi()
     if (g_chattyCathy) Serial.println("WiFi connected");
     if (g_chattyCathy) Serial.println("IP address: ");
     if (g_chattyCathy) Serial.println(WiFi.localIP());
+    if (g_chattyCathy)
+    {
+      byte mac[6];
+      WiFi.macAddress(mac);
+      Serial.print("MAC: ");
+      Serial.print(mac[0],HEX);
+      Serial.print(":");
+      Serial.print(mac[1],HEX);
+      Serial.print(":");
+      Serial.print(mac[2],HEX);
+      Serial.print(":");
+      Serial.print(mac[3],HEX);
+      Serial.print(":");
+      Serial.print(mac[4],HEX);
+      Serial.print(":");
+      Serial.println(mac[5],HEX);
+    }
   }
   else
   {
@@ -367,8 +393,8 @@ boolean BlinkyPicoWCube::reconnect()
 
   if (g_chattyCathy) Serial.print("Attempting MQTT connection using ID...");
 // Create a random client ID
-  String mqttClientId = g_mqttUsername + "-";
-  mqttClientId += String(random(0xffff), HEX);
+  String mqttClientId = g_mqttUsername + "-" + g_trayType + "-" + g_trayName;
+//  mqttClientId += String(random(0xffff), HEX);
   if (g_chattyCathy) Serial.print(mqttClientId);
   rp2040.wdt_reset();
   connected = g_mqttClient.connect(mqttClientId.c_str(),g_mqttUsername.c_str(), g_mqttPassword.c_str());
@@ -458,10 +484,14 @@ void BlinkyPicoWCube::readWebPage()
       g_ssid               = replaceHtmlEscapeChar(data.substring(5,data.indexOf("&pass=")));
       g_wifiPassword       = replaceHtmlEscapeChar(data.substring(data.indexOf("&pass=")  + 6,data.indexOf("&serv=")));
       g_mqttServer         = replaceHtmlEscapeChar(data.substring(data.indexOf("&serv=")  + 6,data.indexOf("&unam=")));
-      g_mqttUsername       = replaceHtmlEscapeChar(data.substring(data.indexOf("&unam=")  + 6,data.indexOf("&mpass=")));
-      g_mqttPassword       = replaceHtmlEscapeChar(data.substring(data.indexOf("&mpass=") + 7,data.indexOf("&pubt=")));
-      g_mqttPublishTopic   = replaceHtmlEscapeChar(data.substring(data.indexOf("&pubt=")  + 6,data.indexOf("&subt=")));
-      g_mqttSubscribeTopic = replaceHtmlEscapeChar(data.substring(data.indexOf("&subt=")  + 6,data.length()));
+      g_mqttUsername       = replaceHtmlEscapeChar(data.substring(data.indexOf("&unam=")  + 6,data.indexOf("&mpas=")));
+      g_mqttPassword       = replaceHtmlEscapeChar(data.substring(data.indexOf("&mpas=")  + 6,data.indexOf("&bbox=")));
+      g_box                = replaceHtmlEscapeChar(data.substring(data.indexOf("&bbox=")  + 6,data.indexOf("&tryt=")));
+      g_trayType           = replaceHtmlEscapeChar(data.substring(data.indexOf("&tryt=")  + 6,data.indexOf("&tryn=")));
+      g_trayName           = replaceHtmlEscapeChar(data.substring(data.indexOf("&tryn=")  + 6,data.indexOf("&cube=")));
+      g_cubeType           = replaceHtmlEscapeChar(data.substring(data.indexOf("&cube=")  + 6,data.length()));
+      g_mqttSubscribeTopic = g_box + "/" + g_cubeType + "/" + g_trayType + "/" + g_trayName + "/setting";
+      g_mqttPublishTopic   = g_box + "/" + g_cubeType + "/" + g_trayType + "/" + g_trayName + "/reading";
       if (g_chattyCathy) Serial.println(header);
       if (g_chattyCathy) Serial.println(data);
       if (g_chattyCathy) Serial.print("X");
@@ -476,6 +506,12 @@ void BlinkyPicoWCube::readWebPage()
       if (g_chattyCathy) Serial.print(g_mqttPassword);
       if (g_chattyCathy) Serial.print("X");
       if (g_chattyCathy) Serial.print(g_mqttPublishTopic);
+      if (g_chattyCathy) Serial.print("X");
+      if (g_chattyCathy) Serial.print(g_trayType);
+      if (g_chattyCathy) Serial.print("X");
+      if (g_chattyCathy) Serial.print(g_trayName);
+      if (g_chattyCathy) Serial.print("X");
+      if (g_chattyCathy) Serial.print(g_cubeType);
       if (g_chattyCathy) Serial.print("X");
       if (g_chattyCathy) Serial.print(g_mqttSubscribeTopic);
       if (g_chattyCathy) Serial.println("X");
@@ -518,9 +554,13 @@ void BlinkyPicoWCube::readWebPage()
         file.println(line);
         line = "{" + g_mqttPassword + "}";
         file.println(line);
-        line = "{" + g_mqttPublishTopic + "}";
+        line = "{" + g_box + "}";
         file.println(line);
-        line = "{" + g_mqttSubscribeTopic + "}";
+        line = "{" + g_trayType + "}";
+        file.println(line);
+        line = "{" + g_trayName + "}";
+        file.println(line);
+        line = "{" + g_cubeType + "}";
         file.println(line);
         file.println("");
         file.println("");
@@ -591,7 +631,7 @@ void BlinkyPicoWCube::serveWebPage()
     tag = "<td class=\"cell\"><input name=\"serv\" id=\"serv\" type=\"text\" value=\"" + g_mqttServer + "\" class=\"formtext\"/></td>";
     client.println(tag.c_str());
     client.println("</tr>");
-  
+    
     client.println("<tr>");
     client.println("<td class=\"cell\"><label for=\"unam\" class=\"labeltext\">MQTT Username</label></td>");
     tag = "<td class=\"cell\"><input name=\"unam\" id=\"unam\" type=\"text\" value=\"" + g_mqttUsername + "\" class=\"formtext\"/></td>";
@@ -599,20 +639,32 @@ void BlinkyPicoWCube::serveWebPage()
     client.println("</tr>");
     
     client.println("<tr>");
-    client.println("<td class=\"cell\"><label for=\"mpass\" class=\"labeltext\">MQTT Password</label></td>");
-    tag = "<td class=\"cell\"><input name=\"mpass\" id=\"mpass\" type=\"password\" value=\"" + g_mqttPassword + "\" class=\"formtext\"/></td>";
+    client.println("<td class=\"cell\"><label for=\"mpas\" class=\"labeltext\">MQTT Password</label></td>");
+    tag = "<td class=\"cell\"><input name=\"mpas\" id=\"mpas\" type=\"password\" value=\"" + g_mqttPassword + "\" class=\"formtext\"/></td>";
     client.println(tag.c_str());
     client.println("</tr>");
    
     client.println("<tr>");
-    client.println("<td class=\"cell\"><label for=\"pubt\" class=\"labeltext\">MQTT Pub. Topic</label></td>");
-    tag = "<td class=\"cell\"><input name=\"pubt\" id=\"pubt\" type=\"text\" value=\"" + g_mqttPublishTopic + "\" class=\"formtext\"/></td>";
+    client.println("<td class=\"cell\"><label for=\"bbox\" class=\"labeltext\">Box</label></td>");
+    tag = "<td class=\"cell\"><input name=\"bbox\" id=\"bbox\" type=\"text\" value=\"" + g_box + "\" class=\"formtext\"/></td>";
+    client.println(tag.c_str());
+    client.println("</tr>");
+
+    client.println("<tr>");
+    client.println("<td class=\"cell\"><label for=\"tryt\" class=\"labeltext\">Tray Type</label></td>");
+    tag = "<td class=\"cell\"><input name=\"tryt\" id=\"tryt\" type=\"text\" value=\"" + g_trayType + "\" class=\"formtext\"/></td>";
     client.println(tag.c_str());
     client.println("</tr>");
       
     client.println("<tr>");
-    client.println("<td class=\"cell\"><label for=\"subt\" class=\"labeltext\">MQTT Sub. Topic</label></td>");
-    tag = "<td class=\"cell\"><input name=\"subt\" id=\"subt\" type=\"text\" value=\"" + g_mqttSubscribeTopic + "\" class=\"formtext\"/></td>";
+    client.println("<td class=\"cell\"><label for=\"tryn\" class=\"labeltext\">Tray Name</label></td>");
+    tag = "<td class=\"cell\"><input name=\"tryn\" id=\"tryn\" type=\"text\" value=\"" + g_trayName + "\" class=\"formtext\"/></td>";
+    client.println(tag.c_str());
+    client.println("</tr>");
+      
+    client.println("<tr>");
+    client.println("<td class=\"cell\"><label for=\"cube\" class=\"labeltext\">Cube Type</label></td>");
+    tag = "<td class=\"cell\"><input name=\"cube\" id=\"cube\" type=\"text\" value=\"" + g_cubeType + "\" class=\"formtext\"/></td>";
     client.println(tag.c_str());
     client.println("</tr>");
     
@@ -659,7 +711,7 @@ void BlinkyPicoWCube::setupWifiAp()
   setCommLEDPin(true);
   WiFi.disconnect();
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(g_mqttUsername);
+  WiFi.softAP(g_trayType + "-" + g_trayName);
   if (g_chattyCathy) Serial.print("[+] AP Created with IP Gateway ");
   if (g_chattyCathy) Serial.println(WiFi.softAPIP());
   g_wifiServer = new WiFiServer(80);
@@ -676,10 +728,6 @@ void BlinkyPicoWCube::setChattyCathy(boolean chattyCathy)
   g_chattyCathy = chattyCathy;
 
   return;
-}
-boolean BlinkyPicoWCube::getChattyCathy()
-{
-  return g_chattyCathy;
 }
 void BlinkyPicoWCube::mqttCubeCallback(char* topic, byte* payload, unsigned int length)
 {
