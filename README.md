@@ -1,4 +1,4 @@
-# blinky-420-p-cube
+# blinky-DS18B20-p-cube
 
 ![pcb](./blinky-DS18B20-p-pcb.png)
 
