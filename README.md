@@ -1,5 +1,5 @@
-# blinky-DS18B20-p-cube
+# blinky-thermo-couple-p-cube
 
-![pcb](./blinky-DS18B20-p-pcb.png)
+![pcb](./blinky-thermo-couple-p-pcb.png)
 
-![pcb](./blinky-DS19B20-p-schem.png)
+![pcb](./blinky-thermo-couple-p-schem.png)
