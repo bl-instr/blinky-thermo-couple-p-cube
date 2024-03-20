@@ -85,7 +85,7 @@ void cubeLoop()
     lastPublishTime = nowTime;
     cubeData.watchdog = cubeData.watchdog + 1;
     if (cubeData.watchdog > 32760) cubeData.watchdog= 0 ;
-    BlinkyPicoWCube::publishToServer();
+    BlinkyPicoWCube.publishToServer();
     
     cubeData.temp1 = (int16_t) getMAX31855Temperature(csPin1, spiSettings);
     cubeData.temp2 = (int16_t) getMAX31855Temperature(csPin2, spiSettings);
