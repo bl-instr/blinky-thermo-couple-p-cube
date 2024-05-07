@@ -129,9 +129,13 @@ int getMAX31855Temperature(int chipSelect, SPISettings spiSetup)
   int pow2 = 1; 
 
   SPI.beginTransaction(spiSetup);
+  delay(10);
   digitalWrite (chipSelect, LOW);
+  delay(10);
   SPI.transfer(&dataBufRead, 4);
+  delay(10);
   digitalWrite (chipSelect, HIGH);
+  delay(10);
   SPI.endTransaction();
 
   for (int ibyte = 0; ibyte < 4; ++ibyte)
