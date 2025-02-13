@@ -1,68 +1,55 @@
-boolean printDiagnostics = false;
+#define BLINKY_DIAG        0
+#define CUBE_DIAG          0
+#define COMM_LED_PIN       2
+#define RST_BUTTON_PIN     3
+#include <BlinkyPicoW.h>
 #include <SPI.h>
 
-
-union CubeData
+struct CubeSetting
 {
-  struct
-  {
-    int16_t state;
-    int16_t watchdog;
-    int16_t temp1;
-    int16_t temp2;
-    int16_t temp3;
-  };
-  byte buffer[10];
+  uint16_t publishInterval;
 };
-CubeData cubeData;
+CubeSetting setting;
 
-#include "BlinkyPicoWCube.h"
+struct CubeReading
+{
+  int16_t tempA;
+  int16_t tempB;
+  int16_t tempC;
+};
+CubeReading reading;
 
+unsigned long lastPublishTime;
 
-int commLEDPin = 2;
-int commLEDBright = 255; 
-int resetButtonPin = 3;
 int csPin1 = 17;
 int csPin2 = 20;
 int csPin3 = 21;
 
 
-unsigned long lastPublishTime;
-unsigned long publishInterval = 2000;
 SPISettings spiSettings;
 
-void setupServerComm()
+void setupBlinky()
 {
-  // Optional setup to overide defaults
-  if (printDiagnostics)
-  {
-    Serial.begin(115200);
-    delay(10000);
-  }
-  BlinkyPicoWCube.setChattyCathy(printDiagnostics);
-  BlinkyPicoWCube.setWifiTimeoutMs(20000);
-  BlinkyPicoWCube.setWifiRetryMs(20000);
-  BlinkyPicoWCube.setMqttRetryMs(3000);
-  BlinkyPicoWCube.setResetTimeoutMs(10000);
-  BlinkyPicoWCube.setHdwrWatchdogMs(8000);
-  BlinkyPicoWCube.setBlMqttKeepAlive(8);
-  BlinkyPicoWCube.setBlMqttSocketTimeout(4);
-  BlinkyPicoWCube.setMqttLedFlashMs(10);
-  BlinkyPicoWCube.setWirelesBlinkMs(100);
-  BlinkyPicoWCube.setMaxNoMqttErrors(5);
-  
-  // Must be included
-  BlinkyPicoWCube.init(commLEDPin, commLEDBright, resetButtonPin);
+  if (BLINKY_DIAG > 0) Serial.begin(9600);
+
+  BlinkyPicoW.setMqttKeepAlive(15);
+  BlinkyPicoW.setMqttSocketTimeout(4);
+  BlinkyPicoW.setMqttPort(1883);
+  BlinkyPicoW.setMqttLedFlashMs(100);
+  BlinkyPicoW.setHdwrWatchdogMs(8000);
+
+  BlinkyPicoW.begin(BLINKY_DIAG, COMM_LED_PIN, RST_BUTTON_PIN, true, sizeof(setting), sizeof(reading));
 }
 
 void setupCube()
 {
+  if (CUBE_DIAG > 0) Serial.begin(9600);
+  setting.publishInterval = 4000;
   lastPublishTime = millis();
-  cubeData.state = 1;
-  cubeData.watchdog = 0;
-  cubeData.temp1 = 0;
-  cubeData.temp2 = 0;
-  cubeData.temp3 = 0;
+
+  reading.tempA = 0;
+  reading.tempB = 0;
+  reading.tempC = 0;
 
   pinMode(csPin1, OUTPUT);
   digitalWrite(csPin1, HIGH);
@@ -76,50 +63,35 @@ void setupCube()
 
 }
 
-void cubeLoop()
+void loopCube()
 {
-  unsigned long nowTime = millis();
-  
-  if ((nowTime - lastPublishTime) > publishInterval)
+  unsigned long now = millis();
+  if ((now - lastPublishTime) > setting.publishInterval)
   {
-    lastPublishTime = nowTime;
-    cubeData.watchdog = cubeData.watchdog + 1;
-    if (cubeData.watchdog > 32760) cubeData.watchdog= 0 ;
-    BlinkyPicoWCube.publishToServer();
     
-    cubeData.temp1 = (int16_t) getMAX31855Temperature(csPin1, spiSettings);
-    cubeData.temp2 = (int16_t) getMAX31855Temperature(csPin2, spiSettings);
-    cubeData.temp3 = (int16_t) getMAX31855Temperature(csPin3, spiSettings);
-    if (printDiagnostics)
+    reading.tempA = (int16_t) getMAX31855Temperature(csPin1, spiSettings);
+    reading.tempB = (int16_t) getMAX31855Temperature(csPin2, spiSettings);
+    reading.tempC = (int16_t) getMAX31855Temperature(csPin3, spiSettings);
+    if (CUBE_DIAG > 0)
     {
       Serial.print("Raw Temps: ");
-      Serial.print(cubeData.temp1);
+      Serial.print(reading.tempA);
       Serial.print(",");
-      Serial.print(cubeData.temp2);
+      Serial.print(reading.tempB);
       Serial.print(",");
-      Serial.println(cubeData.temp3);
+      Serial.println(reading.tempC);
     }
-    
-
+    lastPublishTime = now;
+    boolean successful = BlinkyPicoW.publishCubeData((uint8_t*) &setting, (uint8_t*) &reading, false);
   }  
+  boolean newSettings = BlinkyPicoW.retrieveCubeSetting((uint8_t*) &setting);
+  if (newSettings)
+  {
+    if (setting.publishInterval < 1000) setting.publishInterval = 1000;
+  }
   
 }
 
-
-void handleNewSettingFromServer(uint8_t address)
-{
-  switch(address)
-  {
-    case 0:
-      break;
-    case 1:
-      break;
-    case 2:
-      break;
-    default:
-      break;
-  }
-}
 
 int getMAX31855Temperature(int chipSelect, SPISettings spiSetup)
 {
